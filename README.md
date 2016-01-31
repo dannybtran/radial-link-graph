@@ -44,9 +44,9 @@ var tree = {};
 while (match = rx.exec(document.body.innerHTML)) {
   var url = new URL(match[1]);
   var segs = url.hostname.split('.').reverse();
-  if (["com","co"].indexOf(segs[segs.length-2]) > -1) { 
-    v = segs.pop(); 
-    segs[segs.length-1] = segs[segs.length-1] + '.' + v; 
+  if (["com","co"].indexOf(segs[1]) > -1) { 
+    v = segs.shift(); 
+    segs[0] = segs[0] + '.' + v; 
   }
   var obj = {};
   function recurse(obj, segs) {
