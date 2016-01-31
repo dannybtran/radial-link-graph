@@ -115,7 +115,7 @@ var node = svg.selectAll(".node")
     .data(nodes)
   .enter().append("g")
     .attr("class", "node")
-    .attr("transform", function(d) { return "rotate(" + (d.x - 90) + ")translate(" + d.y + ")"; })
+    .attr("transform", function(d) { return "rotate(" + (d.x - 90) + ")translate(" + d.y + ")"; });
 node.append("circle")
     .attr("r", 4.5);
 node.append("text")
