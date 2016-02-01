@@ -95,18 +95,21 @@ for(var k in tree) {
     children.push(child);
 }
 dtree["children"] = children;
-
+document.body.innerHTML = "<style>html { background-color: white !important; background-image: none !important; }.hidden { opacity: 0.3; } body { background-color: white !important; background-image: none !important; }.node circle {fill: #fff;  stroke: steelblue;  stroke-width: 1.5px;}.node {  font: 12px sans-serif;} .node.highlight circle {fill: #00f} .link {  fill: none;  stroke: #ccc;  stroke-width: 1.5px;} .link.highlight { stroke: #bbb; }</style>";
+document.body.innerHTML += "<div style='position: fixed; top: 10px; left: 10px;'>Zoom <button onmousedown='zin()' onmouseup='zinstop()'>+</button><button onmousedown='zout()' onmouseup='zoutstop()'>-</button></div>";
 function drawGraph(diameter) {
+  d3.select('svg').remove();
 var tree = d3.layout.tree()
     .size([360, diameter/2])
     .separation(function(a, b) { return (a.parent == b.parent ? 1 : 2) / a.depth; });
 var diagonal = d3.svg.diagonal.radial()
     .projection(function(d) { return [d.y, d.x / 180 * Math.PI]; });
 var svg = d3.select("body").append("svg")
-    .attr("width", diameter * 1.5)
-    .attr("height", (diameter - 150) * 1.5)
+    .attr("width", diameter * 2)
+    .attr("height", diameter * 2)
+    .attr("style", "margin: auto; display: block;")
   .append("g")
-    .attr("transform", "translate(" + diameter / 1.9 + "," + diameter / 1.9 + ")");
+    .attr("transform", "translate(" + diameter + "," + diameter + ")");
 var nodes = tree.nodes(dtree),
     links = tree.links(nodes);
 var link = svg.selectAll(".link")
@@ -121,23 +124,43 @@ var node = svg.selectAll(".node")
     .attr("transform", function(d) { return "rotate(" + (d.x - 90) + ")translate(" + d.y + ")"; });
 node.append("circle")
     .on('mouseover', function(e) { 
-       var datum = d3.select(this).datum();
-       d3.select(this).attr('class','node highlight');
+       d3.select(this.parentNode).attr('class','node highlight');
        window._ancestors = [];
+       window._predecessors = [];
+       var datum = d3.select(this).datum();
        while (datum.parent) {
          window._ancestors.push(datum);
          datum = datum.parent;
        }
-       var links = svg.selectAll('.link').filter(function(d, i) {
-         if (window._ancestors.indexOf(d.target) > -1) {
+       var datum = d3.select(this).datum();
+       function getChillen(cs) {
+         if (cs.children) {
+           for(var i = 0; i < cs.children.length; i++) {
+             window._predecessors.push(cs.children[i]);           
+             getChillen(cs.children[i]);
+           }
+         }
+       }
+       getChillen(datum);
+       var links = svg.selectAll('.link');
+       links.attr('class','link hidden');
+       links.filter(function(d, i) {
+         if (window._ancestors.indexOf(d.target) > -1 || window._predecessors.indexOf(d.target) > -1) {
            return true;
          }
          return false;
-       });
-       links.attr('class', 'link highlight');
+       }).attr('class', 'link highlight');
+       var nodes = svg.selectAll('.node');
+       nodes.attr('class','node hidden');
+       nodes.filter(function(d, i) {
+         if (window._ancestors.indexOf(d) > -1 || window._predecessors.indexOf(d) > -1) {
+           return true;
+         }
+         return false;
+       }).attr('class', 'node highlight');       
      })
      .on('mouseout', function(e) {
-       d3.select(this).attr('class','node');
+       svg.selectAll('.node').attr('class','node');
        svg.selectAll('.link').attr('class','link');
      })
     .attr("fill", function(d) { return d.highlighted ? "#00f" : "#fff"; })
@@ -148,12 +171,28 @@ node.append("text")
     .attr("transform", function(d) { return d.x < 180 ? "translate(8)" : "rotate(180)translate(-8)"; })
     .text(function(d) { return d.name; });
 d3.select(self.frameElement).style("height", diameter - 150 + "px");
+centerScroll();
 }
-document.body.innerHTML = "<style>body { background-color: white; }.node circle {fill: #fff;  stroke: steelblue;  stroke-width: 1.5px;}.node {  font: 12px sans-serif;} .node circle.highlight {fill: #00f} .link {  fill: none;  stroke: #ccc;  stroke-width: 1.5px;} .link.highlight { stroke: #666; }</style>";
+var _radius = window.innerHeight/2;
+function centerScroll() { window.scrollTo(document.body.scrollWidth/2 - window.innerWidth/2, document.body.scrollHeight/2 - window.innerHeight/2); }
+var zoomingIn = false;
+var zoomingOut = false;
+function zin() { zoomingIn = true; }
+function zinstop() { zoomingIn = false; }
+function zout() { zoomingOut = true; }
+function zoutstop() { zoomingOut = false; }
+document.body.addEventListener('mouseup', function() {
+  zoomingIn = false; zoomingOut = false;
+});
+setInterval(function() {
+  if (zoomingIn) { _radius += 20; drawGraph(_radius*2); }
+  else if (zoomingOut) { _radius -= 20; drawGraph(_radius*2); }  
+}, 10);
+
 var s = document.createElement('script');
 s.type = 'text/javascript';
 s.onload = function() { 
-  drawGraph(1600); 
+  drawGraph(window.innerHeight); 
 };
 s.src = 'https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.14/d3.min.js';
 document.body.appendChild(s);
